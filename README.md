@@ -1,1 +1,1 @@
-# LM75
+# Arduino library for LM75B Temperature Sensor

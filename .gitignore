@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Json Setting Files
+*.json
+
+# Visual Studio Code
+.vscode
