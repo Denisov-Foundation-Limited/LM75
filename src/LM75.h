@@ -16,35 +16,36 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-#define LM75_ADDR 0x48
+#define LM75_DFLT_ADDR 0x48
 
 class LM75
 {
     public:
-        bool begin();
-        float getTemperature(void);
-		float getMaxTemperature(void);
-		float getMinTemperature(void);
-		void setMaxTemperature(float temp);
-		void setMinTemperature(float temp);
-        
-        void setFaultQueue(uint8_t);
-        void setPolarity(bool);
-        void operationMode();    
-        void turnUp();
-        void shutDown();
-    //private:
+      LM75(void);
+      LM75(uint8_t address);
+
+      float getTemperature(void);
+      float getMaxTemperature(void);
+      float getMinTemperature(void);
+      void setMaxTemperature(float temp);
+      void setMinTemperature(float temp);
+
+      void setFaultQueue(uint8_t);
+      void setPolarity(bool);
+      void operationMode();
+      void turnUp();
+      void shutDown();
+
+      bool status;
+      
+    private:
+      uint8_t lm75_addr;
+
 };
 
 /* Instantiate class
-
-static DS3231 RTC;
-static DS1307 RTC;
-static NVRAM NVRAM;
-static PCF8563 RTC;
-
+static LM75 LM75;
 */
 
-static LM75 LM75;
-#endif   /* LM75_H */
 
+#endif   /* LM75_H */
