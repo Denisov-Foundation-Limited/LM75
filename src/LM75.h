@@ -12,11 +12,14 @@
  * -----------------------------------------------------------*/
 
 #ifndef LM75_H
+#define LM75_H
 
 #include <Arduino.h>
 #include <Wire.h>
 
 #define LM75_DFLT_ADDR 0x48
+#define COMPARATOR 0
+#define INTERRUPT 1
 
 class LM75
 {
@@ -25,21 +28,23 @@ class LM75
       LM75(uint8_t address);
 
       float getTemperature(void);
+
       float getMaxTemperature(void);
       float getMinTemperature(void);
       void setMaxTemperature(float temp);
       void setMinTemperature(float temp);
 
       void setFaultQueue(uint8_t);
+      uint8_t getFaultQueue(void);
       void setPolarity(bool);
-      void operationMode();
+	  bool getPolarity(void);
+      void setOperationMode(bool mode);
+      bool getOperationMode(void);
       void turnUp();
       void shutDown();
 
-      bool status;
-      
     private:
-      uint8_t lm75_addr;
+      int _address;
 
 };
 
