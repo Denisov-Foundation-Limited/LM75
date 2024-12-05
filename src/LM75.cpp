@@ -9,277 +9,175 @@
 #include <LM75.h>
 
 LM75::LM75()
-{	Wire.begin();
-    _address = LM75_DFLT_ADDR;
-	Wire.endTransmission();
+{
+    _i2c_address = LM75_DFLT_ADDR;
 }
 
 LM75::LM75(uint8_t address)
 {
-	Wire.begin();
-    _address = address;
-	Wire.endTransmission();
+    _i2c_address = address;
 }
+
+// LM75::~LM75()
+// {
+
+// }
+
+uint8_t LM75::begin()
+{
+    Wire.begin();
+    return(_i2c_address);
+	//Wire.endTransmission();
+}
+
+bool LM75::isConnected()
+{
+    Wire.begin();
+	Wire.beginTransmission(_i2c_address);
+	return(Wire.endTransmission() == 0 ? true : false);
+}
+
 
 float LM75::getTemperature(void)
 {
-    int8_t temp_msb, temp_lsb;
-    float temp;
-
-    Wire.beginTransmission(_address);
-    Wire.write(0x00);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 2);
-    temp_msb = Wire.read();
-    temp_lsb = Wire.read();
-
-    temp_lsb = temp_lsb >> 5;
-    temp = temp_msb + (temp_lsb * 0.125);
-    
-    return (temp);
+    uint16_t  temperature_reg = _read_two_registers(TEMPERATURE);
+    return(temperature_reg / 256.0f);
 }
-
 
 float LM75::getMinTemperature(void)
 {
-    int8_t temp_msb, temp_lsb;
-    float temp;
-
-    Wire.beginTransmission(_address);
-    Wire.write(0x03);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 2);
-    temp_msb = Wire.read();
-    temp_lsb = Wire.read();
-
-    temp_lsb = temp_lsb >> 7;
-    temp = temp_msb + (temp_lsb * 0.5);
-
-    return (temp);
+    uint16_t  temperature_reg = _read_two_registers(THYST_REG);
+    return(temperature_reg / 256.0f);
 }
-/*
-	round up to be tested
-*/
 
-void LM75::setMinTemperature(float temp)
+void LM75::setMinTemperature(float temperature)
 {
-    int8_t temp_msb, temp_lsb;
-
-    temp_msb = round(temp);
-
-    if((temp-temp_msb) >= 0.5)
-        temp_lsb = 0x80;
-    else
-        temp_lsb = 0x00;
-
-    Wire.beginTransmission(_address);
-    Wire.write(0x03);
-    Wire.write(temp_msb);
-    Wire.write(temp_lsb);
-    Wire.endTransmission();
+    uint16_t temperature_reg = temperature * 256.0f;
+    _write_two_registers(THYST_REG,temperature_reg);
 }
-
 
 float LM75::getMaxTemperature(void)
 {
-    int8_t temp_msb, temp_lsb;
-    float temp;
-
-    Wire.beginTransmission(_address);
-    Wire.write(0x02);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 2);
-    temp_msb = Wire.read();
-    temp_lsb = Wire.read();
-
-    temp_lsb = temp_lsb >> 7;
-
-    temp = temp_msb + (temp_lsb * 0.5);
-
-    return (temp);
+    uint16_t  temperature_reg = _read_two_registers(TOS_REG);
+    return(temperature_reg / 256.0f);
 }
 
-
-void LM75::setMaxTemperature(float temp)
+void LM75::setMaxTemperature(float temperature)
 {
-    int8_t temp_msb, temp_lsb;
-
-    temp_msb = round(temp);
-
-    if((temp-temp_msb) >= 0.5)
-        temp_lsb = 0x80;
-    else
-      temp_lsb = 0x00;
-
-    Wire.beginTransmission(_address);
-    Wire.write(0x02);
-    Wire.write(temp_msb);
-    Wire.write(temp_lsb);
-    Wire.endTransmission();
+    uint16_t temperature_reg = temperature * 256.0f;
+    _write_two_registers(TOS_REG,temperature_reg);
 }
 
+uint8_t LM75::getID()
+{
+    return(_read_one_register(PRODUCT_ID));
+}
+
+uint8_t LM75:: getStatus()
+{
+    uint8_t reg_data;
+
+    reg_data = _read_one_register(CONFIGURATION);
+    return(bitRead(reg_data,0));
+}
 
 void LM75::turnUp()
 {
-	uint8_t data;
+	uint8_t reg_data;
 
-    Wire.beginTransmission(_address);
-    Wire.write(0x01);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 1);
-    data = Wire.read();
-
-	bitClear(data,0);
-	
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-	Wire.write(data);
-    Wire.endTransmission();
+    reg_data = _read_one_register(CONFIGURATION);
+    bitClear(reg_data,0);
+    _write_one_register(CONFIGURATION,reg_data);
 }
 
 void LM75::shutDown()
 {
-	uint8_t data;
+	uint8_t reg_data;
 
-    Wire.beginTransmission(_address);
-    Wire.write(0x01);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 1);
-    data = Wire.read();
+    reg_data = _read_one_register(CONFIGURATION);
+    bitSet(reg_data,0);
+    _write_one_register(CONFIGURATION,reg_data);
 
-	bitSet(data,0);
-	
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-	Wire.write(data);
-    Wire.endTransmission();
 }
 
 void LM75::setOperationMode(bool mode)
 {
-	uint8_t data;
-	
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 1);
-    data = Wire.read();
-	
+	uint8_t reg_data;
+
+    reg_data = _read_one_register(CONFIGURATION);
 	if (mode == COMPARATOR)
-	{
-		bitClear(data,1);
-	}
+		bitClear(reg_data,1);
 	else
-	{
-		bitSet(data,1);
-	}
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-	Wire.write(data);
-    Wire.endTransmission();
+		bitSet(reg_data,1);
+	_write_one_register(CONFIGURATION,reg_data);
 }
 
 bool LM75::getOperationMode()
 {
-	uint8_t data;
-	
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 1);
-    data = Wire.read();
-	
-	bitRead(data,1);
+	uint8_t reg_data;
+    reg_data = _read_one_register(CONFIGURATION);
+	return(bitRead(reg_data,1));
 }
 
 void LM75::setPolarity(bool polarity)
 {
-	uint8_t data;
-	
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 1);
-    data = Wire.read();
-	
+	uint8_t reg_data;
+    reg_data = _read_one_register(CONFIGURATION);
+
 	if (polarity == LOW)
-	{
-		bitClear(data,2);
-	}
+		bitClear(reg_data,2);
 	else
-	{
-		bitSet(data,2);
-	}
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-	Wire.write(data);
-    Wire.endTransmission();
-    
+		bitSet(reg_data,2);
+
+    _write_one_register(CONFIGURATION,reg_data);
 }
 
 bool LM75::getPolarity()
 {
-	uint8_t data;
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 1);
-    data = Wire.read();
-	data = bitRead(data,2);
-	
-	return(data);
+    uint8_t reg_data;
+    reg_data = _read_one_register(CONFIGURATION);
+	reg_data = bitRead(reg_data,2);
+	return(reg_data);
 }
 
 void LM75::setFaultQueue(uint8_t value)
 {
-	uint8_t data;
-	
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 1);
-    data = Wire.read();
+	uint8_t reg_data;
+    reg_data = _read_one_register(CONFIGURATION);
     
     switch(value)
     {
 		case 1:
-			bitClear(data,3);
-			bitClear(data,4);
+			bitClear(reg_data,3);
+			bitClear(reg_data,4);
 			break;
 		case 2:
-			bitSet(data,3);
-			bitClear(data,4);
+			bitSet(reg_data,3);
+			bitClear(reg_data,4);
 			break;
 		case 4:
-			bitClear(data,3);
-			bitSet(data,4);
+			bitClear(reg_data,3);
+			bitSet(reg_data,4);
 			break;
 		case 8:
-			bitSet(data,3);
-			bitSet(data,4);
+			bitSet(reg_data,3);
+			bitSet(reg_data,4);
 			break;
 		default:
-			bitClear(data,3);
-			bitClear(data,4);
+			bitClear(reg_data,3);
+			bitClear(reg_data,4);
 			break;
 	}
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-	Wire.write(data);
-    Wire.endTransmission();	
+	_write_one_register(CONFIGURATION,reg_data);
 }
 
 uint8_t LM75::getFaultQueue(void)
 {
-	uint8_t data;	
-	Wire.beginTransmission(_address);
-    Wire.write(0x01);
-    Wire.endTransmission();
-    Wire.requestFrom(_address, 1);
-    data = Wire.read();
+	uint8_t reg_data;
+    reg_data = _read_one_register(CONFIGURATION);
     
-    data = data >> 3;
-    switch(data)
+    reg_data = reg_data >> 3;
+    switch(reg_data)
     {
 		case 0:
 			return 1;
@@ -297,9 +195,62 @@ uint8_t LM75::getFaultQueue(void)
 			return 1;
 			break;
 	}
-	return data;
+	return reg_data;
 }
 
+/* Private Functions */
 
+uint8_t LM75::_read_one_register(uint8_t reg_address)
+{
+    uint8_t reg_data;
+    
+    Wire.beginTransmission(_i2c_address);
+    Wire.write(reg_address);
+    Wire.endTransmission();
 
+    Wire.requestFrom((int)_i2c_address,(int) 1);
+    reg_data = Wire.read();
+    return(reg_data);
 
+}
+
+void LM75::_write_one_register(uint8_t reg_address, uint8_t reg_data)
+{
+    Wire.beginTransmission(_i2c_address);
+    Wire.write(reg_address);
+    Wire.write(reg_data);
+    Wire.endTransmission();
+}
+
+uint16_t LM75::_read_two_registers(uint8_t reg_address)
+{
+    uint8_t reg_msb, reg_lsb;
+    uint16_t two_registers;
+
+    Wire.beginTransmission(_i2c_address);
+    Wire.write(reg_address);
+    Wire.endTransmission();
+    Wire.requestFrom(_i2c_address, 2);
+
+    reg_msb = Wire.read();
+    reg_lsb = Wire.read();
+
+    two_registers = (reg_msb << 8) | reg_lsb;
+    
+    return(two_registers);
+}
+
+void LM75:: _write_two_registers(uint8_t reg_address, uint16_t reg_data)
+{
+    uint8_t reg_msb, reg_lsb;
+    uint16_t two_registers;
+
+    reg_msb = reg_data >> 8;
+    reg_lsb = reg_data & 0x00FF;
+
+    Wire.beginTransmission(_i2c_address);
+    Wire.write(reg_address);
+    Wire.write(reg_msb);
+    Wire.write(reg_lsb);
+    Wire.endTransmission();
+}

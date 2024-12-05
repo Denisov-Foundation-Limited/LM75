@@ -18,35 +18,62 @@
 #include <Wire.h>
 
 #define LM75_DFLT_ADDR 0x48
+
+#define TEMPERATURE 0x00
+#define CONFIGURATION 0x01
+#define THYST_REG 0x02	// Min Temp
+#define TOS_REG 0x03  	// Max Temp
+#define PRODUCT_ID 0x07
+
+#define ON 0
+#define OFF 1
+
 #define COMPARATOR 0
 #define INTERRUPT 1
 
 class LM75
 {
-    public:
-      LM75(void);
-      LM75(uint8_t address);
+	public:
+		
+		// Constructors
+		LM75();
+		LM75(uint8_t address);
+		//~LM75();
+		
+		// Functions
+		uint8_t begin();
+		bool isConnected();
+		uint8_t getID();
 
-      float getTemperature(void);
+        float getTemperature(void);
 
-      float getMaxTemperature(void);
-      float getMinTemperature(void);
-      void setMaxTemperature(float temp);
-      void setMinTemperature(float temp);
+		float getMinTemperature(void);
+		void setMinTemperature(float temperature);
+		
+		float getMaxTemperature(void);
+		void setMaxTemperature(float temperature);
 
-      void setFaultQueue(uint8_t);
-      uint8_t getFaultQueue(void);
-      void setPolarity(bool);
-	  bool getPolarity(void);
-      void setOperationMode(bool mode);
-      bool getOperationMode(void);
-      void turnUp();
-      void shutDown();
+		void setFaultQueue(uint8_t);
+		uint8_t getFaultQueue(void);
 
-    private:
-      int _address;
+		void setPolarity(bool);
+		bool getPolarity(void);
+		
+		void setOperationMode(bool mode);
+		bool getOperationMode(void);
+		
+		uint8_t getStatus();
+		void turnUp();
+		void shutDown();
 
-};
+	private:
+		int _i2c_address;
+		uint8_t _read_one_register(uint8_t reg_address);
+		void _write_one_register(uint8_t reg_address, uint8_t reg_data);
+
+		uint16_t _read_two_registers(uint8_t reg_address);
+		void _write_two_registers(uint8_t reg_address, uint16_t reg_data);
+	};
 
 /* Instantiate class
 static LM75 LM75;

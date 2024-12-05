@@ -1,34 +1,44 @@
+/*
+    Sketch to get temperature from LM75 Without library!
+    Why not?
+*/
+
 #include <Wire.h>
 
-int8_t temp_msb, temp_lsb;
-float Temp;
+uint8_t temp_msb, temp_lsb;
+int temp_address = 0x48;
+uint16_t temp_reg;
+float temperatureC, temperatureF;
 
 void setup() {
   
-    Serial.begin(9600);
-    Serial.println("Hello");
+    Serial.begin(115200);
+    Serial.println();
     Wire.begin(); 
 }
 
 void loop() {
 
-    Wire.beginTransmission(0x48);
+    Wire.beginTransmission(temp_address);
     Wire.write(0x00);
     Wire.endTransmission();
-    Wire.requestFrom(0x48, 2);
+    Wire.requestFrom(temp_address, 2);
     temp_msb = Wire.read();
     temp_lsb = Wire.read();
 
-    temp_lsb = temp_lsb >> 5;
-    Temp = temp_msb + (temp_lsb * 0.125);
+    temp_reg = (temp_msb << 8) | temp_lsb;
 
-     Serial.println(Temp);
-     Serial.println("C");
-     
-    
-    //Serial.println(temp_msb,BIN);
-    //Serial.println(temp_lsb,BIN);
+    temperatureC = temp_reg/256.0f;
+    temperatureF = (temperatureC * 9/5) + 32;
 
-  delay(2000);
+    Serial.print("Temperature in C : ");
+    Serial.print(temperatureC,3);
+    Serial.print("°C");
+
+    Serial.print("Temperature in F : ");
+    Serial.print(temperatureF,3);
+    Serial.println("°F");
+
+    delay(2000);
 
 }
