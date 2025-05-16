@@ -29,7 +29,6 @@
 #define OFF 1
 
 #define COMPARATOR 0
-#define INTERRUPT 1
 
 class LM75
 {
@@ -42,6 +41,7 @@ class LM75
 		
 		// Functions
 		uint8_t begin();
+		bool begin(uint8_t address, TwoWire *bus);
 		bool isConnected();
 		uint8_t getID();
 
@@ -68,6 +68,7 @@ class LM75
 
 	private:
 		int _i2c_address;
+		TwoWire *_bus = nullptr;
 		uint8_t _read_one_register(uint8_t reg_address);
 		void _write_one_register(uint8_t reg_address, uint8_t reg_data);
 
