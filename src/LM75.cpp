@@ -5,7 +5,6 @@
 */
 
 #include <Arduino.h>
-#include <Wire.h>
 #include <LM75.h>
 
 LM75::LM75()
@@ -25,21 +24,27 @@ LM75::LM75(uint8_t address)
 
 uint8_t LM75::begin()
 {
-    Wire.begin();
     return(_i2c_address);
-	//Wire.endTransmission();
+	//_bus->endTransmission();
+}
+
+bool LM75::begin(uint8_t address, TwoWire *bus)
+{
+    _i2c_address = address;
+    _bus = bus;
+    return true;
 }
 
 bool LM75::isConnected()
 {
-    Wire.begin();
-	Wire.beginTransmission(_i2c_address);
-	return(Wire.endTransmission() == 0 ? true : false);
+	_bus->beginTransmission(_i2c_address);
+	return(_bus->endTransmission() == 0 ? true : false);
 }
 
 
 float LM75::getTemperature(void)
 {
+    if (_bus == nullptr) return 0;
     uint16_t  temperature_reg = _read_two_registers(TEMPERATURE);
     return(temperature_reg / 256.0f);
 }
@@ -204,22 +209,22 @@ uint8_t LM75::_read_one_register(uint8_t reg_address)
 {
     uint8_t reg_data;
     
-    Wire.beginTransmission(_i2c_address);
-    Wire.write(reg_address);
-    Wire.endTransmission();
+    _bus->beginTransmission(_i2c_address);
+    _bus->write(reg_address);
+    _bus->endTransmission();
 
-    Wire.requestFrom((int)_i2c_address,(int) 1);
-    reg_data = Wire.read();
+    _bus->requestFrom((int)_i2c_address,(int) 1);
+    reg_data = _bus->read();
     return(reg_data);
 
 }
 
 void LM75::_write_one_register(uint8_t reg_address, uint8_t reg_data)
 {
-    Wire.beginTransmission(_i2c_address);
-    Wire.write(reg_address);
-    Wire.write(reg_data);
-    Wire.endTransmission();
+    _bus->beginTransmission(_i2c_address);
+    _bus->write(reg_address);
+    _bus->write(reg_data);
+    _bus->endTransmission();
 }
 
 uint16_t LM75::_read_two_registers(uint8_t reg_address)
@@ -227,13 +232,13 @@ uint16_t LM75::_read_two_registers(uint8_t reg_address)
     uint8_t reg_msb, reg_lsb;
     uint16_t two_registers;
 
-    Wire.beginTransmission(_i2c_address);
-    Wire.write(reg_address);
-    Wire.endTransmission();
-    Wire.requestFrom(_i2c_address, 2);
+    _bus->beginTransmission(_i2c_address);
+    _bus->write(reg_address);
+    _bus->endTransmission();
+    _bus->requestFrom(_i2c_address, 2);
 
-    reg_msb = Wire.read();
-    reg_lsb = Wire.read();
+    reg_msb = _bus->read();
+    reg_lsb = _bus->read();
 
     two_registers = (reg_msb << 8) | reg_lsb;
     
@@ -248,9 +253,9 @@ void LM75:: _write_two_registers(uint8_t reg_address, uint16_t reg_data)
     reg_msb = reg_data >> 8;
     reg_lsb = reg_data & 0x00FF;
 
-    Wire.beginTransmission(_i2c_address);
-    Wire.write(reg_address);
-    Wire.write(reg_msb);
-    Wire.write(reg_lsb);
-    Wire.endTransmission();
+    _bus->beginTransmission(_i2c_address);
+    _bus->write(reg_address);
+    _bus->write(reg_msb);
+    _bus->write(reg_lsb);
+    _bus->endTransmission();
 }
